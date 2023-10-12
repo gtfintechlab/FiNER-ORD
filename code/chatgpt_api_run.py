@@ -2,9 +2,14 @@ import openai,os,sys
 import pandas as pd
 from time import sleep, time
 from datetime import date
-today = date.today()
 
-openai.api_key = ""
+
+sys.path.insert(0, '/home/research/git repos/zero-shot-finance')
+from api_keys import APIKeyConstants
+
+
+today = date.today()
+openai.api_key = APIKeyConstants.OPENAI_API_KEY
 
  
 start_t = time()
@@ -50,4 +55,4 @@ for index in range(grouped_df.shape[0]):
 results = pd.DataFrame(output_list, columns=["true_label", "original_sent", "text_output"])
 
 time_taken = int((time() - start_t)/60.0)
-results.to_pickle(f'../data/llm_prompt_outputs/chatgpt_{today.strftime("%d_%m_%Y")}_{time_taken}')
+results.to_pickle(f'../data/llm_prompt_outputs/chatgpt_{today.strftime("%d_%m_%Y")}_{time()}_{time_taken}')

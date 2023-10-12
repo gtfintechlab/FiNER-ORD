@@ -36,7 +36,7 @@ missing_perc_list = []
 
 files = os.listdir('../data/llm_prompt_outputs')
 
-files_xls = [f for f in files if 'palm' in f]
+files_xls = [f for f in files if 'gpt4' in f]
 
 for file in files_xls:
     df = pd.read_pickle('../data/llm_prompt_outputs/' + file)

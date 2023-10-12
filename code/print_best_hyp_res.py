@@ -2,7 +2,7 @@ import pandas as pd
 import os
 
 
-df = pd.read_csv('../data/grid_search_results/roberta-large_1_0/results.csv')
+df = pd.read_csv('../data/grid_search_results/xlnet-base-cased_1_0/results.csv')
 df_temp = df.groupby(['Learning Rate', 'Batch Size'], as_index=False).agg(
 {
     "Val F1": ["mean"],

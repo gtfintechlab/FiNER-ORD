@@ -54,4 +54,4 @@ for index in range(grouped_df.shape[0]):
 results = pd.DataFrame(output_list, columns=["true_label", "original_sent", "text_output"])
 
 time_taken = int((time() - start_t)/60.0)
-results.to_pickle(f'../data/llm_prompt_outputs/gpt4_{today.strftime("%d_%m_%Y")}_{time_taken}')
+results.to_pickle(f'../data/llm_prompt_outputs/gpt4_{today.strftime("%d_%m_%Y_%H_%M")}_{time_taken}')
