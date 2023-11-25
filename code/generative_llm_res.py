@@ -36,10 +36,11 @@ missing_perc_list = []
 
 files = os.listdir('../data/llm_prompt_outputs')
 
-files_xls = [f for f in files if 'gpt4' in f]
+files_xls = [f for f in files if 'gpt4' in f] # chatgpt or gpt4
 
 for file in files_xls:
     df = pd.read_pickle('../data/llm_prompt_outputs/' + file)
+    print(f"****{file}****")
 
 
     true_labels = []
@@ -79,12 +80,22 @@ for file in files_xls:
                     predicted_labels.append(-1)
                 sub_index_gold = sub_index_gold + 1
 
-
+                true_idx = len(predicted_labels) - 1
+                pred_idx = -1
+                if (true_labels[true_idx] in [3, 4] and predicted_labels[pred_idx] in [5, 6]) or (true_labels[true_idx] in [5, 6] and predicted_labels[pred_idx] in [3, 4]):
+                    print("true:", true_labels[true_idx])
+                    print("predicted:", predicted_labels[pred_idx])
+                    print(sub_index_gold)
+                    print(original_sent_split[sub_index_gold-1])
+                    # if sub_index_gold > 0 and sub_index_gold < len(original_sent_split):
+                    #     print(original_sent_split[sub_index_gold-2])
+                    print(original_sent_split)
+                    print()
 
     acc_list.append(accuracy_score(true_labels, predicted_labels))
     f1_list.append(f1_score(true_labels, predicted_labels, average='weighted'))
     missing_perc_list.append((predicted_labels.count(-1)/len(predicted_labels))*100.0)
-    print(classification_report(predicted_labels, true_labels))
+    # print(classification_report(predicted_labels, true_labels, digits=7))
 
 print("f1 score mean: ", format(np.mean(f1_list), '.4f'))
 print("f1 score std: ", format(np.std(f1_list), '.4f'))
