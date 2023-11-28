@@ -17,6 +17,8 @@ from tqdm import tqdm
 from transformers import RobertaForTokenClassification, RobertaTokenizerFast, BertForTokenClassification, BertTokenizerFast, AutoTokenizer, AutoModelForTokenClassification, XLNetForTokenClassification, XLNetTokenizerFast
 from transformers import pipeline
 
+from seqeval.metrics import classification_report
+
 logging.basicConfig()
 
 
@@ -339,6 +341,28 @@ class BERTForNer:
         test_ce = 0
         actual = np.array([])
         pred = np.array([])
+
+        y_true_entity_level_eval = []
+        y_pred_entity_level_eval = []
+        # mapping_dict = {
+        #     'O': 'O',
+        #     'PER_B': 'B-PER',
+        #     'LOC_B': 'B-LOC',
+        #     'PER_I': 'I-PER',
+        #     'LOC_I': 'I-LOC',
+        #     'ORG_B': 'B-ORG',
+        #     'ORG_I': 'I-ORG'
+        # }
+        mapping_dict = {
+            0: 'O',
+            1: 'B-PER',
+            3: 'B-LOC',
+            2: 'I-PER',
+            4: 'I-LOC',
+            5: 'B-ORG',
+            6: 'I-ORG'
+        }
+
         for input_ids, attention_masks, labels in dataloaders_dict['test']:
             input_ids = input_ids.to(self.device)
             attention_masks = attention_masks.to(self.device)
@@ -368,6 +392,22 @@ class BERTForNer:
                 test_correct += np.sum(true_predictions == true_labels)
                 actual = np.concatenate([actual, true_labels], axis=0)
                 pred = np.concatenate([pred, true_predictions], axis=0)
+
+                mapped_true_labels = [mapping_dict[item] for item in true_labels]
+                mapped_pred_labels = [mapping_dict[item] for item in true_predictions]
+
+                print(true_labels)
+                print(mapped_true_labels)
+                print(true_predictions)
+                print(mapped_pred_labels)
+
+                y_true_entity_level_eval.append(mapped_true_labels.tolist())
+                y_pred_entity_level_eval.append(mapped_pred_labels.tolist())
+
+                print(y_true_entity_level_eval)
+                print(y_pred_entity_level_eval)
+
+                break
         
         test_time_taken = (time() - start_test_labeling)/60.0
         test_accuracy = test_correct / test_total
@@ -377,6 +417,9 @@ class BERTForNer:
                                        pred,
                                        labels=list(train_str2int.values()))
         print(confusion_matrix_temp)
+
+        #seqeval code for entity level metrics as requested in openreview
+        print(classification_report(y_true_entity_level_eval, y_pred_entity_level_eval))
 
         report = classification_report(actual,
                                        pred,
