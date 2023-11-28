@@ -17,7 +17,7 @@ from tqdm import tqdm
 from transformers import RobertaForTokenClassification, RobertaTokenizerFast, BertForTokenClassification, BertTokenizerFast, AutoTokenizer, AutoModelForTokenClassification, XLNetForTokenClassification, XLNetTokenizerFast
 from transformers import pipeline
 
-from seqeval.metrics import classification_report
+from seqeval.metrics import classification_report as seqeval_clf_rpt
 
 logging.basicConfig()
 
@@ -353,15 +353,16 @@ class BERTForNer:
         #     'ORG_B': 'B-ORG',
         #     'ORG_I': 'I-ORG'
         # }
-        mapping_dict = {
-            0: 'O',
-            1: 'B-PER',
-            3: 'B-LOC',
-            2: 'I-PER',
-            4: 'I-LOC',
-            5: 'B-ORG',
-            6: 'I-ORG'
-        }
+        # mapping_dict = {
+        #     0: 'O',
+        #     1: 'B-PER',
+        #     3: 'B-LOC',
+        #     2: 'I-PER',
+        #     4: 'I-LOC',
+        #     5: 'B-ORG',
+        #     6: 'I-ORG'
+        # }
+        mapping_dict = {0: 'B-LOC', 1: 'I-LOC', 2: 'O', 3: 'B-ORG', 4: 'I-ORG', 5: 'B-PER', 6: 'I-PER'}
 
         for input_ids, attention_masks, labels in dataloaders_dict['test']:
             input_ids = input_ids.to(self.device)
@@ -396,30 +397,32 @@ class BERTForNer:
                 mapped_true_labels = [mapping_dict[item] for item in true_labels]
                 mapped_pred_labels = [mapping_dict[item] for item in true_predictions]
 
-                print(true_labels)
-                print(mapped_true_labels)
-                print(true_predictions)
-                print(mapped_pred_labels)
+                # print(true_labels)
+                # print()
+                # print(mapped_true_labels)
+                # print(true_predictions)
+                # print(mapped_pred_labels)
 
-                y_true_entity_level_eval.append(mapped_true_labels.tolist())
-                y_pred_entity_level_eval.append(mapped_pred_labels.tolist())
+                y_true_entity_level_eval.append(mapped_true_labels)
+                y_pred_entity_level_eval.append(mapped_pred_labels)
 
-                print(y_true_entity_level_eval)
-                print(y_pred_entity_level_eval)
+                # print(y_true_entity_level_eval)
+                # print(y_pred_entity_level_eval)
+                # print()
 
-                break
+                # break
         
         test_time_taken = (time() - start_test_labeling)/60.0
         test_accuracy = test_correct / test_total
         test_ce = test_ce / len(dataloaders_dict['test'])
         test_f1 = f1_score(actual, pred, average='weighted')
-        confusion_matrix_temp = confusion_matrix(actual,
-                                       pred,
-                                       labels=list(train_str2int.values()))
-        print(confusion_matrix_temp)
+        # confusion_matrix_temp = confusion_matrix(actual,
+        #                                pred,
+        #                                labels=list(train_str2int.values()))
+        # print(confusion_matrix_temp)
 
         #seqeval code for entity level metrics as requested in openreview
-        print(classification_report(y_true_entity_level_eval, y_pred_entity_level_eval))
+        print(seqeval_clf_rpt(y_true_entity_level_eval, y_pred_entity_level_eval))
 
         report = classification_report(actual,
                                        pred,
@@ -451,7 +454,6 @@ class BERTForNer:
         train_dataset, train_str2int, train_int2str = self.load_data(self.train_path, self.int2str)
         val_dataset, val_str2int, val_int2str = self.load_data(self.val_path, self.int2str)
         test_dataset, test_str2int, test_int2str = self.load_data(self.test_path, self.int2str)
-
         assert train_str2int == val_str2int == test_str2int, f"Labels are mismatching"
         assert train_int2str == val_int2str == test_int2str, f"Labels are mismatching"
 
@@ -463,7 +465,7 @@ class BERTForNer:
                 for bs in self.batch_sizes:
                     dataloaders_dict = {'train': DataLoader(train_dataset, batch_size=bs, shuffle=True),
                                         'val': DataLoader(val_dataset, batch_size=bs, shuffle=True),
-                                        'test': DataLoader(test_dataset, batch_size=bs, shuffle=True)}
+                                        'test': DataLoader(test_dataset, batch_size=bs, shuffle=False)}
 
                     self.set_current_seed(seed)
                     self.set_current_lr(lr)

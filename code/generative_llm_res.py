@@ -41,10 +41,32 @@ files_xls = [f for f in files if 'gpt4' in f] # chatgpt or gpt4
 for file in files_xls:
     df = pd.read_pickle('../data/llm_prompt_outputs/' + file)
     print(f"****{file}****")
-
+    print(df.head())
 
     true_labels = []
     predicted_labels = []
+
+    y_true_entity_level_eval = []
+    y_pred_entity_level_eval = []
+    # mapping_dict = {
+    #     'O': 'O',
+    #     'PER_B': 'B-PER',
+    #     'LOC_B': 'B-LOC',
+    #     'PER_I': 'I-PER',
+    #     'LOC_I': 'I-LOC',
+    #     'ORG_B': 'B-ORG',
+    #     'ORG_I': 'I-ORG'
+    # }
+    # mapping_dict = {
+    #     0: 'O',
+    #     1: 'B-PER',
+    #     3: 'B-LOC',
+    #     2: 'I-PER',
+    #     4: 'I-LOC',
+    #     5: 'B-ORG',
+    #     6: 'I-ORG'
+    # }
+    mapping_dict = {0: 'B-LOC', 1: 'I-LOC', 2: 'O', 3: 'B-ORG', 4: 'I-ORG', 5: 'B-PER', 6: 'I-PER'}
     
     for index in range(df.shape[0]):
 
@@ -80,17 +102,21 @@ for file in files_xls:
                     predicted_labels.append(-1)
                 sub_index_gold = sub_index_gold + 1
 
-                true_idx = len(predicted_labels) - 1
-                pred_idx = -1
-                if (true_labels[true_idx] in [3, 4] and predicted_labels[pred_idx] in [5, 6]) or (true_labels[true_idx] in [5, 6] and predicted_labels[pred_idx] in [3, 4]):
-                    print("true:", true_labels[true_idx])
-                    print("predicted:", predicted_labels[pred_idx])
-                    print(sub_index_gold)
-                    print(original_sent_split[sub_index_gold-1])
-                    # if sub_index_gold > 0 and sub_index_gold < len(original_sent_split):
-                    #     print(original_sent_split[sub_index_gold-2])
-                    print(original_sent_split)
-                    print()
+                #### find examples of LOC and ORG confusion
+                # true_idx = len(predicted_labels) - 1
+                # pred_idx = -1
+                # if (true_labels[true_idx] in [3, 4] and predicted_labels[pred_idx] in [5, 6]) or (true_labels[true_idx] in [5, 6] and predicted_labels[pred_idx] in [3, 4]):
+                #     print("true:", true_labels[true_idx])
+                #     print("predicted:", predicted_labels[pred_idx])
+                #     print(sub_index_gold)
+                #     print(original_sent_split[sub_index_gold-1])
+                #     # if sub_index_gold > 0 and sub_index_gold < len(original_sent_split):
+                #     #     print(original_sent_split[sub_index_gold-2])
+                #     print(original_sent_split)
+                #     print()
+
+    print(true_labels)
+    print(predicted_labels)
 
     acc_list.append(accuracy_score(true_labels, predicted_labels))
     f1_list.append(f1_score(true_labels, predicted_labels, average='weighted'))
