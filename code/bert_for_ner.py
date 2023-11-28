@@ -112,12 +112,23 @@ class BERTForNer:
 
         """
         df = pd.read_csv(file_path)
+        # print(file_path)
+        # print(df.head())
         df.label = df.label.map(int2str)
         df.dropna(inplace=True)
 
-        df_sentences = df.groupby('uuid').agg({'token': list, 'label': list})
+        # df_sentences = df.groupby('uuid').agg({'token': list, 'label': list})
+        df_sentences = df.groupby(['document_id', 'sentence_id']).agg({'token': list, 'label': list})
+        # print(df_sentences.head())
         sentences = df_sentences.token.tolist()
         sentences_tags = df_sentences.label.tolist()
+
+        # doc_indices = df_sentences.index.get_level_values('document_id').tolist()
+        # sent_indices = df_sentences.index.get_level_values('sentence_id').tolist()
+        # doc_indices_tensor = torch.tensor(doc_indices, dtype=torch.long)
+        # sent_indices_tensor = torch.tensor(sent_indices, dtype=torch.long)
+
+
 
         max_length = 0
         dropped_sentences = 0
@@ -169,6 +180,7 @@ class BERTForNer:
                 previous_word_idx = word_idx
             labels.append(label_ids)
         labels = torch.LongTensor(labels)
+        # return TensorDataset(input_ids, attention_masks, labels, doc_indices_tensor, sent_indices_tensor), str_to_int, int_to_str
         return TensorDataset(input_ids, attention_masks, labels), str_to_int, int_to_str
 
     def set_current_lr(self, lr: float):
@@ -364,6 +376,10 @@ class BERTForNer:
         # }
         mapping_dict = {0: 'B-LOC', 1: 'I-LOC', 2: 'O', 3: 'B-ORG', 4: 'I-ORG', 5: 'B-PER', 6: 'I-PER'}
 
+        # res_list = [] # list of list containing [doc_idx, sent_idx, true_label, pred_label]
+        # seqeval_raw_map = {'doc_idx': [], 'sent_idx': [], 'true_label': [], 'pred_label': []}
+        # seqeval_raw_map = {'sent_idx': [], 'true_label': [], 'pred_label': []}
+
         for input_ids, attention_masks, labels in dataloaders_dict['test']:
             input_ids = input_ids.to(self.device)
             attention_masks = attention_masks.to(self.device)
@@ -380,6 +396,10 @@ class BERTForNer:
                 loss = criterion(active_logits, active_labels)
                 curr_pred = outputs.logits.argmax(dim=-1).detach().cpu().clone().numpy()
                 curr_actual = labels.detach().cpu().clone().numpy()
+                # print(curr_pred[0])
+                # print(curr_actual)
+                # print(len(curr_pred))
+                # print(len(curr_actual))
                 true_predictions = np.concatenate([
                     [p for (p, l) in zip(sentence_preds, sentence_labels) if l != -100]
                     for sentence_preds, sentence_labels in zip(curr_pred, curr_actual)
@@ -388,41 +408,67 @@ class BERTForNer:
                     [l for (p, l) in zip(sentence_preds, sentence_labels) if l != -100]
                     for sentence_preds, sentence_labels in zip(curr_pred, curr_actual)
                 ])
+
+                # sent_true_preds = []
+                # sent_true_labels =[]
+                for sentence_preds, sentence_labels in zip(curr_pred, curr_actual):
+                    curr_pred_list = []
+                    curr_label_list = []
+                    for p, l in zip(sentence_preds, sentence_labels):
+                        if l != -100:
+                            curr_pred_list.append(p)
+                            curr_label_list.append(l)
+                    y_pred_entity_level_eval.append([mapping_dict[item] for item in curr_pred_list])
+                    y_true_entity_level_eval.append([mapping_dict[item] for item in curr_label_list])
+                # print(sent_true_preds)
+                # print(sent_true_labels)
+
                 test_total += len(true_predictions)
                 test_ce += loss.item() * input_ids.size(0)
                 test_correct += np.sum(true_predictions == true_labels)
                 actual = np.concatenate([actual, true_labels], axis=0)
                 pred = np.concatenate([pred, true_predictions], axis=0)
 
-                mapped_true_labels = [mapping_dict[item] for item in true_labels]
-                mapped_pred_labels = [mapping_dict[item] for item in true_predictions]
+                # seqeval_raw_map['doc_idx'].extend(doc_indices_tensor.tolist())
+                # seqeval_raw_map['sent_idx'].extend(sent_indices_tensor.tolist())
+                # seqeval_raw_map['true_label'].extend(mapped_true_labels)
+                # seqeval_raw_map['pred_label'].extend(mapped_pred_labels)
+                # print(len(seqeval_raw_map['sent_idx']))
+                # print(len(seqeval_raw_map['true_label']))
+                # print(len(seqeval_raw_map['pred_label']))
+                # break
+            # break
 
                 # print(true_labels)
                 # print()
+                # print(doc_indices_tensor)
+                # print()
+                # print(sent_indices_tensor)
                 # print(mapped_true_labels)
                 # print(true_predictions)
                 # print(mapped_pred_labels)
 
-                y_true_entity_level_eval.append(mapped_true_labels)
-                y_pred_entity_level_eval.append(mapped_pred_labels)
+                # y_true_entity_level_eval.append(mapped_true_labels)
+                # y_pred_entity_level_eval.append(mapped_pred_labels)
 
                 # print(y_true_entity_level_eval)
                 # print(y_pred_entity_level_eval)
                 # print()
 
                 # break
-        
+        # print(y_true_entity_level_eval[30])
         test_time_taken = (time() - start_test_labeling)/60.0
         test_accuracy = test_correct / test_total
         test_ce = test_ce / len(dataloaders_dict['test'])
         test_f1 = f1_score(actual, pred, average='weighted')
+        # print(seqeval_raw_map)
         # confusion_matrix_temp = confusion_matrix(actual,
         #                                pred,
         #                                labels=list(train_str2int.values()))
         # print(confusion_matrix_temp)
 
         #seqeval code for entity level metrics as requested in openreview
-        print(seqeval_clf_rpt(y_true_entity_level_eval, y_pred_entity_level_eval))
+        print(seqeval_clf_rpt(y_true_entity_level_eval, y_pred_entity_level_eval, digits=4))
 
         report = classification_report(actual,
                                        pred,
@@ -460,12 +506,17 @@ class BERTForNer:
         num_labels = len(train_int2str)
         self.set_criterion(train_str2int)
 
+        # num_labels = len(test_dataset)
+        # self.set_criterion(test_str2int)
+
+        # main_seqeval_raw_map = {}
+
         for seed in self.seeds:
             for lr in self.learning_rates:
                 for bs in self.batch_sizes:
                     dataloaders_dict = {'train': DataLoader(train_dataset, batch_size=bs, shuffle=True),
                                         'val': DataLoader(val_dataset, batch_size=bs, shuffle=True),
-                                        'test': DataLoader(test_dataset, batch_size=bs, shuffle=False)}
+                                        'test': DataLoader(test_dataset, batch_size=bs, shuffle=False)} # could change shuffle=True, only order of sentences should be shuffled
 
                     self.set_current_seed(seed)
                     self.set_current_lr(lr)
@@ -493,6 +544,7 @@ class BERTForNer:
 
                     self.fine_tune(model, optimizer, dataloaders_dict, train_str2int)
                     self.test(model, optimizer, dataloaders_dict, train_str2int)
+                    # self.test(model, optimizer, dataloaders_dict, test_str2int)
 
 
 def main():

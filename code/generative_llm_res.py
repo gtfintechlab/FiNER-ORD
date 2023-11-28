@@ -7,6 +7,8 @@ from sklearn.metrics import f1_score
 from sklearn.metrics import accuracy_score
 from sklearn.metrics import classification_report
 
+from seqeval.metrics import classification_report as seqeval_clf_rpt
+
 def decode(label_word):
     try:
         label_word = label_word.lower()
@@ -36,12 +38,12 @@ missing_perc_list = []
 
 files = os.listdir('../data/llm_prompt_outputs')
 
-files_xls = [f for f in files if 'gpt4' in f] # chatgpt or gpt4
+files_xls = [f for f in files if 'gpt4' in f and '_10_' in f] # chatgpt or gpt4
 
 for file in files_xls:
     df = pd.read_pickle('../data/llm_prompt_outputs/' + file)
     print(f"****{file}****")
-    print(df.head())
+    # print(df.head())
 
     true_labels = []
     predicted_labels = []
@@ -57,18 +59,22 @@ for file in files_xls:
     #     'ORG_B': 'B-ORG',
     #     'ORG_I': 'I-ORG'
     # }
-    # mapping_dict = {
-    #     0: 'O',
-    #     1: 'B-PER',
-    #     3: 'B-LOC',
-    #     2: 'I-PER',
-    #     4: 'I-LOC',
-    #     5: 'B-ORG',
-    #     6: 'I-ORG'
-    # }
-    mapping_dict = {0: 'B-LOC', 1: 'I-LOC', 2: 'O', 3: 'B-ORG', 4: 'I-ORG', 5: 'B-PER', 6: 'I-PER'}
+    mapping_dict = {
+        -1: 'B-MISSING',
+        0: 'O',
+        1: 'B-PER',
+        3: 'B-LOC',
+        2: 'I-PER',
+        4: 'I-LOC',
+        5: 'B-ORG',
+        6: 'I-ORG'
+    }
+    # mapping_dict = {0: 'B-LOC', 1: 'I-LOC', 2: 'O', 3: 'B-ORG', 4: 'I-ORG', 5: 'B-PER', 6: 'I-PER'}
     
-    for index in range(df.shape[0]):
+    for cntr, index in enumerate(range(df.shape[0])):
+
+        curr_true_list = []
+        curr_pred_list = []
 
         true_labels_temp = df.loc[[index],['true_label']].values[0, 0]
         original_sent_temp = df.loc[[index],['original_sent']].values[0, 0]
@@ -102,7 +108,7 @@ for file in files_xls:
                     predicted_labels.append(-1)
                 sub_index_gold = sub_index_gold + 1
 
-                #### find examples of LOC and ORG confusion
+                #### find examples of LOC and ORG confusion ####
                 # true_idx = len(predicted_labels) - 1
                 # pred_idx = -1
                 # if (true_labels[true_idx] in [3, 4] and predicted_labels[pred_idx] in [5, 6]) or (true_labels[true_idx] in [5, 6] and predicted_labels[pred_idx] in [3, 4]):
@@ -115,13 +121,55 @@ for file in files_xls:
                 #     print(original_sent_split)
                 #     print()
 
-    print(true_labels)
-    print(predicted_labels)
+                #### seqeval ####
+                true_idx = len(predicted_labels) - 1
+                pred_idx = -1
+                curr_true_list.append(true_labels[true_idx])
+                curr_pred_list.append(predicted_labels[pred_idx])
+                # if (true_labels[true_idx] in [3, 4] and predicted_labels[pred_idx] in [5, 6]) or (true_labels[true_idx] in [5, 6] and predicted_labels[pred_idx] in [3, 4]):
+                #     print("true:", true_labels[true_idx])
+                #     print("predicted:", predicted_labels[pred_idx])
+                #     print(sub_index_gold)
+                #     print(original_sent_split[sub_index_gold-1])
+                #     # if sub_index_gold > 0 and sub_index_gold < len(original_sent_split):
+                #     #     print(original_sent_split[sub_index_gold-2])
+                #     print(original_sent_split)
+                #     print()
+
+            mapped_true_labels = [mapping_dict[item] for item in curr_true_list]
+            mapped_pred_labels = [mapping_dict[item] for item in curr_pred_list]
+
+            y_true_entity_level_eval.append(mapped_true_labels)
+            y_pred_entity_level_eval.append(mapped_pred_labels)
+
+            # print('curr_true')
+            # print(curr_true_list)
+            # print()
+            # print("curr_pred")
+            # print(curr_pred_list)
+            # print()
+            # print('mapped true')
+            # print(mapped_true_labels)
+            # print()
+            # print('mapped pred')
+            # print(mapped_pred_labels)
+            # print()
+            # print('true eval')
+            # print(y_true_entity_level_eval)
+            # print()
+            # print('pred eval')
+            # print(y_pred_entity_level_eval)
+        
+    # print(true_labels)
+    # print(predicted_labels)
+        # if cntr > 5:
+        #     break
 
     acc_list.append(accuracy_score(true_labels, predicted_labels))
     f1_list.append(f1_score(true_labels, predicted_labels, average='weighted'))
     missing_perc_list.append((predicted_labels.count(-1)/len(predicted_labels))*100.0)
     # print(classification_report(predicted_labels, true_labels, digits=7))
+    print(seqeval_clf_rpt(y_true_entity_level_eval, y_pred_entity_level_eval, digits=4))
 
 print("f1 score mean: ", format(np.mean(f1_list), '.4f'))
 print("f1 score std: ", format(np.std(f1_list), '.4f'))
