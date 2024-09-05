@@ -1,13 +1,13 @@
 {
     "experiment_name": "roberta-large-best",
-    "experiment_version": 1.0,
+    "experiment_version": 2.0,
     "description": "RoBERTa Large model trained on news NER data",
     "seeds": [
         5768, 78516, 944601
     ],
     "epsilon": 1e-2,
     "batch_sizes": [
-        8
+        16
     ],
     "learning_rates": [
         0.00001

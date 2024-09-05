@@ -1,7 +1,0 @@
-python3 bert_for_ner.py news_fine_tune_ner_bert_base_best.json
-python3 bert_for_ner.py news_fine_tune_ner_bert_flang_best.json
-python3 bert_for_ner.py news_fine_tune_ner_bert_large_best.json
-python3 bert_for_ner.py news_fine_tune_ner_finbert_best.json
-python3 bert_for_ner.py news_fine_tune_ner_roberta_base_best.json
-python3 bert_for_ner.py news_fine_tune_ner_roberta_large_best.json
-python3 bert_for_ner.py news_fine_tune_ner_xlnet_best.json
