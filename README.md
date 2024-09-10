@@ -17,11 +17,11 @@ This repository contains the benchmarking code for the paper "[FiNER-ORD: Financ
 If you find this repository useful, please cite our work.
 
 ```c
-@article{shah2023finer,
-  title={FiNER: Financial Named Entity Recognition Dataset and Weak-supervision Model},
-  author={Agam Shah and Ruchit Vithani and Abhinav Gullapalli and Sudheer Chava},
+@article{shah2024finerordfinancialnamedentity,
+  title={FiNER-ORD: Financial Named Entity Recognition Open Research Dataset},
+  author={Agam Shah and Abhinav Gullapalli and Ruchit Vithani and Michael Galarnyk and Sudheer Chava},
   journal={arXiv preprint arXiv:2302.11157},
-  year={2023}
+  year={2024}
 }
 ```
 
